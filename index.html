@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prakash's Portfolio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: split hero (copy on the left, a live k-means plot on the right), then sections with a narrow heading rail and a wide content column. */
+:root{
+  --bg:#EEF1F7; --surface:#FFFFFF; --ink:#10152B; --muted:#586080; --line:#D5DAE8; --soft:#E3E7F6;
+  --accent:#3A3AF2; --accent-ink:#FFFFFF; --warm:#F27B2E; --teal:#0E9F8E; --ok:#1B9A68;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C0F1F; --surface:#141932; --ink:#E9ECF8; --muted:#9AA2C0; --line:#272E52; --soft:#1B2142;
+    --accent:#8E8EFF; --accent-ink:#0C0F1F; --warm:#FF9A5C; --teal:#45D3C0; --ok:#4CD08F; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C0F1F; --surface:#141932; --ink:#E9ECF8; --muted:#9AA2C0; --line:#272E52; --soft:#1B2142;
+  --accent:#8E8EFF; --accent-ink:#0C0F1F; --warm:#FF9A5C; --teal:#45D3C0; --ok:#4CD08F; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:auto}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--font-body);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1120px;margin-inline:auto;padding-inline:clamp(16px,4vw,32px)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.015em}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;padding-block:10px}
+.brand{font:800 1.2rem var(--font-display);text-decoration:none;letter-spacing:-.02em;margin-right:auto}
+.brand span{color:var(--accent)}
+.nav{display:flex;gap:4px;overflow-x:auto;min-width:0}
+.nav a{padding:6px 10px;border-radius:8px;text-decoration:none;font-weight:500;font-size:.92rem;color:var(--muted);white-space:nowrap}
+.nav a:hover{color:var(--ink);background:var(--soft)}
+@media(max-width:560px){.nav{order:3;width:100%}}
+
+/* buttons */
+.btn{font:600 .88rem var(--font-body);padding:.55rem .95rem;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;line-height:1.3}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:.4rem .7rem;font-size:.82rem}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center;padding-block:clamp(32px,6vw,72px)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;margin:0 0 18px}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+h1{font-weight:800;font-size:clamp(2.35rem,5.6vw,4.3rem);line-height:1.02;letter-spacing:-.03em}
+h1 .hl{color:var(--accent)}
+.lead{max-width:34rem;color:var(--muted);font-size:1.06rem;margin:20px 0 26px}
+.cta{display:flex;flex-wrap:wrap;gap:10px}
+.now{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:32px 0 0;padding-top:20px;border-top:1px solid var(--line);font-size:.95rem}
+.now dt{padding-top:3px}
+.now dd{margin:0}
+@media(max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+
+/* k-means lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;box-shadow:0 20px 44px -28px rgba(10,14,40,.45);min-width:0;margin:0}
+.lab-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.lab-head h2{font-size:1.05rem;font-weight:700}
+.lab p.cap{margin:0;color:var(--muted);font-size:.88rem}
+#plot{width:100%;aspect-ratio:4/3;display:block;border-radius:8px;background:var(--bg);border:1px solid var(--line);cursor:crosshair;touch-action:manipulation}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stat{display:grid;gap:2px}
+.stat b{font:600 1.05rem var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px}
+
+/* sections */
+.sec{display:grid;grid-template-columns:200px minmax(0,1fr);gap:clamp(20px,4vw,48px);padding-block:clamp(40px,7vw,88px);border-top:1px solid var(--line);scroll-margin-top:64px}
+.rail h2{font-size:clamp(1.6rem,3vw,2.1rem);font-weight:700;margin-bottom:8px}
+.rail p{margin:0;color:var(--muted);font-size:.9rem}
+.content{min-width:0}
+@media(max-width:860px){.sec{grid-template-columns:minmax(0,1fr)}}
+
+/* skills */
+.sgroup+.sgroup{margin-top:22px}
+.sgroup>.mono{display:block;margin-bottom:10px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.skill{text-align:left;display:grid;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;min-width:0}
+.skill:hover{border-color:var(--accent)}
+.skill[aria-pressed="true"]{border-color:var(--accent);background:var(--soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.skill b{font-weight:600}
+.skill .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dots{display:flex;gap:4px}
+.dots i{width:14px;height:5px;border-radius:3px;background:var(--line)}
+.dots i.on{background:var(--accent)}
+.skill .stage{font:500 .7rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.snote{margin:18px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--muted);font-size:.92rem;min-height:2.2rem}
+
+/* projects */
+.filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 16px;min-height:2rem;color:var(--muted);font-size:.92rem}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px;min-width:0}
+.card h3{font-size:1.2rem;font-weight:700}
+.card p{margin:0;color:var(--muted);font-size:.94rem}
+.pill{display:inline-flex;align-items:center;gap:7px;font:500 .7rem var(--font-mono);letter-spacing:.07em;text-transform:uppercase;padding:3px 10px 3px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);justify-self:start}
+.pill i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted)}
+.pill.done i{background:var(--ok);border-color:var(--ok)}
+.pill.doing i{border-color:var(--warm);background:linear-gradient(90deg,var(--warm) 50%,transparent 50%)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font:500 .72rem var(--font-mono);padding:2px 8px;border-radius:6px;background:var(--soft);color:var(--ink)}
+.more{justify-self:start;background:none;border:0;padding:0;font:600 .88rem var(--font-body);color:var(--accent);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.more::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+.more[aria-expanded="true"]::after{transform:rotate(-135deg) translate(-2px,-1px)}
+.detail{display:grid;gap:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.detail dl{margin:0;display:grid;gap:10px}
+.detail dt{margin-bottom:2px}
+.detail dd{margin:0;font-size:.93rem}
+.ghlink{justify-self:start}
+.here{vertical-align:middle;margin-left:8px}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:24px;color:var(--muted)}
+
+/* path */
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tab{text-align:left;border:0;border-top:3px solid var(--line);background:none;padding:12px 4px 4px;cursor:pointer;color:var(--muted);font:inherit;display:grid;gap:2px;min-width:0}
+.tab b{font:700 1.02rem var(--font-display);color:var(--ink)}
+.tab[aria-selected="true"]{border-top-color:var(--accent)}
+.tab[aria-selected="true"] .mono{color:var(--accent)}
+.tabpanel{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.tabpanel h3{font-size:1.25rem;grid-column:1/-1}
+.tabpanel ul{margin:8px 0 0;padding-left:1.1rem;display:grid;gap:4px}
+@media(max-width:560px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.tabpanel{grid-template-columns:minmax(0,1fr)}}
+
+.weekbox{margin-top:36px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:16px}
+.weekhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+.weekhead h3{font-size:1.2rem}
+.total{font:800 2rem var(--font-display);line-height:1;font-variant-numeric:tabular-nums}
+.total small{font:500 .8rem var(--font-mono);color:var(--muted);margin-left:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:.85rem}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--accent)}
+.legend span.p::before{background:var(--warm)}
+.legend span.g::before{background:var(--line);height:2px;border-radius:0;vertical-align:middle}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.day{border:1px solid transparent;border-radius:10px;background:none;padding:8px 4px 6px;cursor:pointer;display:grid;gap:6px;justify-items:center;color:var(--ink);font:inherit}
+.day:hover{background:var(--soft)}
+.day[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+.bars{width:min(100%,44px);height:152px;display:flex;flex-direction:column-reverse;background-image:repeating-linear-gradient(to top,transparent 0 37px,var(--line) 37px 38px)}
+.seg{width:100%}
+.seg.l{background:var(--accent)}
+.seg.p{background:var(--warm);border-radius:4px 4px 0 0}
+.day .mono{color:inherit}
+.day b{font:500 .78rem var(--font-mono);font-variant-numeric:tabular-nums}
+.daynote{margin:0;font-size:.95rem;min-height:3em}
+
+/* contact */
+.big{font:700 clamp(1.5rem,3.4vw,2.3rem)/1.15 var(--font-display);letter-spacing:-.02em;margin:0 0 24px;max-width:28ch;text-wrap:balance}
+.mail{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;max-width:34rem}
+.mail code{font:500 1rem var(--font-mono);overflow-wrap:anywhere;min-width:0;flex:1 1 12rem}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+footer{border-top:1px solid var(--line);padding-block:28px 40px;color:var(--muted);font-size:.88rem}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);opacity:0;pointer-events:none;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;font-size:.9rem;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+/* standalone-page basics */
+html{color-scheme:light}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top">Prakashwaran<span> P</span></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#projects">Projects</a>
+      <a href="#skills">Skills</a>
+      <a href="#path">Learning path</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button class="btn small" id="themeBtn" type="button" aria-label="Switch colour theme">Dark</button>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <section class="hero">
+    <div>
+      <p class="eyebrow mono">AI &amp; Data Science · 2nd year</p>
+      <h1>Prakashwaran builds small tools that <span class="hl">learn</span> from data.</h1>
+      <p class="lead">I am a second-year student working through Python, SQL and machine learning by building something real at each step. Every project below is planned for now, and each one will switch to done as I finish it.</p>
+      <div class="cta">
+        <a class="btn primary" href="#projects">See projects</a>
+        <button class="btn" id="copyHero" type="button">Copy email</button>
+      </div>
+      <dl class="now">
+        <dt class="mono">Now</dt><dd>Python, SQL and pandas</dd>
+        <dt class="mono">Next</dt><dd>Machine learning basics and three portfolio projects</dd>
+        <dt class="mono">College</dt><dd>Dhanalakshmi Srinivasan College of Engineering (Autonomous), Perambalur</dd>
+      </dl>
+    </div>
+
+    <figure class="lab" aria-label="Interactive k-means clustering demo">
+      <div class="lab-head">
+        <h2>Try it: k-means clustering</h2>
+        <span class="mono">k = 3</span>
+      </div>
+      <p class="cap">Click the plot to add a point. Run moves three centroids until every point sits with its nearest group.</p>
+      <canvas id="plot" role="img" aria-label="Scatter plot of points grouped into three clusters. Click to add a point."></canvas>
+      <div class="stats" aria-live="polite">
+        <div class="stat"><span class="mono">Step</span><b id="sIter">0</b></div>
+        <div class="stat"><span class="mono">Points</span><b id="sPts">0</b></div>
+        <div class="stat"><span class="mono">Inertia</span><b id="sIn">0</b></div>
+        <div class="stat"><span class="mono">State</span><b id="sState">Ready</b></div>
+      </div>
+      <div class="ctrls">
+        <button class="btn primary small" id="bRun" type="button">Run</button>
+        <button class="btn small" id="bStep" type="button">Step</button>
+        <button class="btn small" id="bAdd" type="button">Add point</button>
+        <button class="btn small" id="bShuf" type="button">Shuffle centroids</button>
+        <button class="btn small" id="bReset" type="button">Reset</button>
+      </div>
+    </figure>
+  </section>
+
+  <section class="sec" id="projects">
+    <div class="rail">
+      <h2>Projects</h2>
+      <p>Pick a skill in the next section to filter this list.</p>
+    </div>
+    <div class="content">
+      <div class="filterbar" id="filterbar"></div>
+      <div class="pgrid" id="pgrid"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="skills">
+    <div class="rail">
+      <h2>Skills</h2>
+      <p>Levels are honest and I update them as I learn. Tap a skill to see which projects use it.</p>
+    </div>
+    <div class="content">
+      <div id="sgroups"></div>
+      <p class="snote" id="snote">Tap a skill to see the projects that use it.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="path">
+    <div class="rail">
+      <h2>Learning path</h2>
+      <p>Where I am now and where this is heading.</p>
+    </div>
+    <div class="content">
+      <div class="tabs" role="tablist" aria-label="Learning phases" id="tabs"></div>
+      <div class="tabpanel" role="tabpanel" id="tabpanel" tabindex="0"></div>
+
+      <div class="weekbox">
+        <div class="weekhead">
+          <div>
+            <span class="mono">A normal week</span>
+            <h3>How I spend my study hours</h3>
+          </div>
+          <div class="total" id="wtotal">0<small>h / week</small></div>
+        </div>
+        <div class="legend"><span>Learning</span><span class="p">Practice and projects</span><span class="g">1 hour per line</span></div>
+        <div class="week" id="week"></div>
+        <p class="daynote" id="daynote"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="contact">
+    <div class="rail">
+      <h2>Contact</h2>
+      <p>Open to internships, project ideas and small data jobs.</p>
+    </div>
+    <div class="content">
+      <p class="big">Need help with data work, or have an internship in mind? Send me a note.</p>
+      <div class="mail">
+        <code id="emailText"></code>
+        <button class="btn small" id="copyMail" type="button">Copy</button>
+      </div>
+      <div class="links">
+        <a class="btn small" id="gh" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn small" id="li" href="https://www.linkedin.com" target="_blank" rel="noopener">LinkedIn</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">AI &amp; Data Science portfolio</span>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ---------- Edit these lists to make the page yours ---------- */
+const PROFILE = {
+  name: 'Prakashwaran P',
+  email: 'prakashwaran3@gmail.com',
+  github: 'https://github.com/prakashwaran3-eng',
+  linkedin: 'https://www.linkedin.com/in/prakash-waran-376476379'
+};
+
+// [name, level 0-4]  (0 Next up, 1 Starting, 2 Practising, 3 Comfortable, 4 Strong)
+const SKILLS = [
+  { group: 'Programming', items: [['Python', 1], ['SQL', 1], ['Git & GitHub', 1]] },
+  { group: 'Data work', items: [['pandas', 1], ['NumPy', 1], ['Excel', 1], ['Data cleaning', 1], ['Data visualization', 0], ['Web scraping', 0]] },
+  { group: 'Machine learning', items: [['scikit-learn', 0], ['Deep learning', 0]] },
+  { group: 'Delivering to clients', items: [['Streamlit', 0], ['Client communication', 1]] }
+];
+const STAGES = ['Next up', 'Starting', 'Practising', 'Comfortable', 'Strong'];
+
+// status: done | doing | planned
+const PROJECTS = [
+  { title: 'Expense Tracker', status: 'planned', tags: ['Python', 'Git & GitHub'],
+    summary: 'A command-line app that records daily spending and shows monthly totals by category.',
+    problem: 'Pocket money disappears and it is hard to see where it went.',
+    approach: 'Python with OOP: an Expense class, a CSV file for storage and a summary function that groups by category.',
+    outcome: 'My first project, planned for the coming month. Code will go to GitHub.' },
+  { title: 'Marks Analyzer', status: 'planned', tags: ['Python', 'pandas', 'NumPy', 'Data visualization'],
+    summary: 'Reads a class marks CSV, finds subject averages and toppers, and plots the spread.',
+    problem: 'Class results come as a flat sheet that is hard to compare across subjects.',
+    approach: 'Load with pandas, compute per-subject statistics with NumPy and draw a box plot per subject.',
+    outcome: 'Planned right after the Expense Tracker.' },
+  { title: 'Price Tracker Scraper', status: 'planned', tags: ['Python', 'Web scraping', 'pandas'],
+    summary: 'Collects product prices from a web page and saves them to a spreadsheet each day.',
+    problem: 'Checking prices by hand takes time, and small shops often ask for this kind of data collection.',
+    approach: 'Requests and BeautifulSoup to read the page, pandas to clean the data and export to Excel.',
+    outcome: 'Planned for months 2 to 3. A useful sample for client work.' },
+  { title: 'Sales Dashboard', status: 'planned', tags: ['SQL', 'pandas', 'Data visualization', 'Streamlit', 'Excel'],
+    summary: 'Answers sales questions with SQL and shows the monthly trend in a simple web dashboard.',
+    problem: 'Small businesses keep sales in sheets and cannot see trends quickly.',
+    approach: 'Load orders from Excel into SQLite, query with joins and group by, then chart the result in Streamlit.',
+    outcome: 'Planned for months 4 to 6.' },
+  { title: 'House Price Predictor', status: 'planned', tags: ['pandas', 'Data cleaning', 'scikit-learn', 'Data visualization'],
+    summary: 'Predicts a house price from area, rooms and location using regression.',
+    problem: 'Learn the full machine learning loop on a small, clean dataset.',
+    approach: 'Clean with pandas, split into train and test, fit linear regression and compare with a random forest.',
+    outcome: 'Planned for months 4 to 6. Will report mean absolute error on the test set.' },
+  { title: 'Spam Message Classifier', status: 'planned', tags: ['Python', 'scikit-learn'],
+    summary: 'Labels an SMS as spam or not spam from its text.',
+    problem: 'Text needs turning into numbers before a model can use it.',
+    approach: 'TF-IDF features and a Naive Bayes classifier, checked with precision and recall.',
+    outcome: 'Planned for months 4 to 6.' }
+];
+
+const PHASES = [
+  { when: 'Now to month 3', title: 'Foundations', now: true,
+    study: ['Python', 'SQL', 'pandas'],
+    build: ['Start basic DSA', 'Ship a first mini-project and push it to GitHub'] },
+  { when: 'Months 4 to 6', title: 'First models',
+    study: ['Machine learning basics'],
+    build: ['Build three projects', 'Put every project on GitHub'] },
+  { when: '3rd year', title: 'Going deeper',
+    study: ['Deep learning'],
+    build: ['Advanced projects', 'An internship', 'DSA every day'] },
+  { when: '4th year', title: 'Specialise',
+    study: ['One chosen area in depth'],
+    build: ['Polish the resume', 'Mock interviews', 'Apply to companies'] }
+];
+
+// [short, full, learning hrs, practice hrs, note]
+const WEEK = [
+  ['Mon', 'Monday', 1, 1, 'Learn 1 hr from a course, then practise 1 hr of coding.'],
+  ['Tue', 'Tuesday', 1, 1, 'Learn 1 hr, then practise 1 hr.'],
+  ['Wed', 'Wednesday', 1, 1, 'Learn 1 hr, then practise 1 hr.'],
+  ['Thu', 'Thursday', 1, 1, 'Learn 1 hr, then practise 1 hr.'],
+  ['Fri', 'Friday', 1, 1, 'Learn 1 hr, then practise 1 hr.'],
+  ['Sat', 'Saturday', 0, 2, 'Project work for the portfolio, about two hours.'],
+  ['Sun', 'Sunday', 0, 3.5, 'DSA and revision, then plan the next week.']
+];
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const root = document.documentElement;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (v, a = .04, b = .96) => Math.min(b, Math.max(a, v));
+function goto(id){ const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  e.preventDefault();
+  const id = a.getAttribute('href').slice(1);
+  goto(id === 'top' ? 'top' : id);
+});
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ---------- theme ---------- */
+const mq = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => { const t = root.getAttribute('data-theme'); return t ? t === 'dark' : mq.matches; };
+function syncTheme(){ $('#themeBtn').textContent = isDark() ? 'Light' : 'Dark'; draw(); }
+$('#themeBtn').addEventListener('click', () => { root.setAttribute('data-theme', isDark() ? 'light' : 'dark'); syncTheme(); });
+mq.addEventListener && mq.addEventListener('change', syncTheme);
+
+/* ---------- contact ---------- */
+$('#emailText').textContent = PROFILE.email;
+$('#gh').href = PROFILE.github;
+$('#li').href = PROFILE.linkedin;
+function copyEmail(){
+  const fallback = () => {
+    const r = document.createRange(); r.selectNodeContents($('#emailText'));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    toast('Email selected. Press Ctrl+C or long-press to copy.');
+  };
+  try {
+    navigator.clipboard.writeText(PROFILE.email).then(() => toast('Email copied'), fallback);
+  } catch (err) { fallback(); }
+}
+$('#copyHero').addEventListener('click', copyEmail);
+$('#copyMail').addEventListener('click', copyEmail);
+
+/* ---------- skills + projects ---------- */
+let activeTag = null;
+function projectsFor(tag){ return PROJECTS.filter(p => p.tags.includes(tag)); }
+
+function renderSkills(){
+  $('#sgroups').innerHTML = SKILLS.map(g => `
+    <div class="sgroup">
+      <span class="mono">${esc(g.group)}</span>
+      <div class="sgrid">${g.items.map(([n, l]) => `
+        <button class="skill" type="button" data-tag="${esc(n)}" aria-pressed="${activeTag === n}">
+          <span class="row"><b>${esc(n)}</b><span class="dots" aria-hidden="true">${[1,2,3,4].map(i => `<i class="${i <= l ? 'on' : ''}"></i>`).join('')}</span></span>
+          <span class="stage">${STAGES[l]}</span>
+        </button>`).join('')}
+      </div>
+    </div>`).join('');
+  const note = $('#snote');
+  if (!activeTag) { note.textContent = 'Tap a skill to see the projects that use it.'; return; }
+  const n = projectsFor(activeTag).length;
+  note.innerHTML = n
+    ? `<span>${esc(activeTag)} is used in ${n} project${n > 1 ? 's' : ''}.</span><button class="btn small" type="button" data-go="projects">Show projects</button>`
+    : `<span>No project uses ${esc(activeTag)} yet. It is on the learning path.</span>`;
+}
+
+const open = new Set();
+function renderProjects(){
+  const list = activeTag ? projectsFor(activeTag) : PROJECTS;
+  $('#filterbar').innerHTML = activeTag
+    ? `<span>Showing projects that use <b>${esc(activeTag)}</b></span><button class="btn small" type="button" data-clear="1">Show all</button>`
+    : `<span>${PROJECTS.length} projects planned, ${PROJECTS.filter(p => p.status === 'done').length} finished so far</span>`;
+  const label = { done: 'Done', doing: 'In progress', planned: 'Planned' };
+  $('#pgrid').innerHTML = list.length ? list.map(p => {
+    const i = PROJECTS.indexOf(p), isOpen = open.has(i);
+    return `<article class="card">
+      <span class="pill ${p.status}"><i></i>${label[p.status]}</span>
+      <h3>${esc(p.title)}</h3>
+      <p>${esc(p.summary)}</p>
+      <div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+      <button class="more" type="button" data-i="${i}" aria-expanded="${isOpen}" aria-controls="d${i}">${isOpen ? 'Hide details' : 'Details'}</button>
+      <div class="detail" id="d${i}" ${isOpen ? '' : 'hidden'}>
+        <dl>
+          <div><dt class="mono">Problem</dt><dd>${esc(p.problem)}</dd></div>
+          <div><dt class="mono">Approach</dt><dd>${esc(p.approach)}</dd></div>
+          <div><dt class="mono">Result</dt><dd>${esc(p.outcome)}</dd></div>
+        </dl>
+        <a class="btn small ghlink" href="${esc(PROFILE.github)}" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </article>`;
+  }).join('') : `<div class="empty">No project uses ${esc(activeTag)} yet.</div>`;
+}
+
+document.addEventListener('click', e => {
+  const sk = e.target.closest('.skill');
+  if (sk) { const t = sk.dataset.tag; activeTag = activeTag === t ? null : t; renderSkills(); renderProjects(); return; }
+  if (e.target.closest('[data-clear]')) { activeTag = null; renderSkills(); renderProjects(); return; }
+  if (e.target.closest('[data-go]')) { goto('projects'); return; }
+  const more = e.target.closest('.more');
+  if (more) { const i = +more.dataset.i; open.has(i) ? open.delete(i) : open.add(i); renderProjects(); const b = document.querySelector(`.more[data-i="${i}"]`); if (b) b.focus(); }
+});
+
+/* ---------- learning path ---------- */
+let phase = 0;
+function renderPhases(){
+  $('#tabs').innerHTML = PHASES.map((p, i) => `
+    <button class="tab" role="tab" type="button" id="tab${i}" data-p="${i}" aria-selected="${i === phase}" aria-controls="tabpanel" tabindex="${i === phase ? 0 : -1}">
+      <span class="mono">${esc(p.when)}</span><b>${esc(p.title)}</b>
+    </button>`).join('');
+  const p = PHASES[phase];
+  const panel = $('#tabpanel');
+  panel.setAttribute('aria-labelledby', 'tab' + phase);
+  panel.innerHTML = `<h3>${esc(p.title)}${p.now ? ' <span class="pill doing here"><i></i>I am here</span>' : ''}</h3>
+    <div><span class="mono">Studying</span><ul>${p.study.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>
+    <div><span class="mono">Doing</span><ul>${p.build.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>`;
+}
+$('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) { phase = +t.dataset.p; renderPhases(); } });
+$('#tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  e.preventDefault();
+  phase = (phase + (e.key === 'ArrowRight' ? 1 : PHASES.length - 1)) % PHASES.length;
+  renderPhases(); $('#tab' + phase).focus();
+});
+
+/* ---------- weekly hours chart (38px per hour) ---------- */
+let day = 5;
+const PX = 38;
+function renderWeek(){
+  const wk = $('#week'); wk.innerHTML = '';
+  let total = 0;
+  WEEK.forEach((d, i) => {
+    total += d[2] + d[3];
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'day'; b.setAttribute('aria-pressed', i === day);
+    b.setAttribute('aria-label', `${d[1]}, ${d[2] + d[3]} hours`);
+    const bars = document.createElement('div'); bars.className = 'bars';
+    if (d[2]) { const s = document.createElement('div'); s.className = 'seg l'; s.style.height = d[2] * PX + 'px'; bars.appendChild(s); }
+    if (d[3]) { const s = document.createElement('div'); s.className = 'seg p'; s.style.height = d[3] * PX + 'px'; bars.appendChild(s); }
+    const l = document.createElement('span'); l.className = 'mono'; l.textContent = d[0];
+    const h = document.createElement('b'); h.textContent = (d[2] + d[3]) + ' h';
+    b.append(bars, l, h);
+    b.addEventListener('click', () => { day = i; renderWeek(); });
+    wk.appendChild(b);
+  });
+  const d = WEEK[day];
+  $('#daynote').textContent = `${d[1]}: ${d[2] + d[3]} h. ${d[4]}`;
+  $('#wtotal').innerHTML = `${total}<small>h / week</small>`;
+}
+
+/* ---------- k-means playground ---------- */
+const cv = $('#plot'), ctx = cv.getContext('2d');
+const K = 3;
+let W = 0, H = 0, pts = [], cents = [], iter = 0, converged = false, timer = null, raf = 0, touched = false;
+
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gauss = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+
+function assign(){
+  let changed = false;
+  for (const p of pts) {
+    let best = 0, bd = Infinity;
+    cents.forEach((c, i) => { const d = (p.x - c.x) ** 2 + (p.y - c.y) ** 2; if (d < bd) { bd = d; best = i; } });
+    if (p.c !== best) { p.c = best; changed = true; }
+  }
+  return changed;
+}
+function update(){
+  cents.forEach((c, i) => {
+    let sx = 0, sy = 0, n = 0;
+    for (const p of pts) if (p.c === i) { sx += p.x; sy += p.y; n++; }
+    if (n) { c.x = sx / n; c.y = sy / n; }
+  });
+}
+const inertia = () => pts.reduce((s, p) => s + (p.x - cents[p.c].x) ** 2 + (p.y - cents[p.c].y) ** 2, 0) * 100;
+
+function setCents(list){ cents = list.map(([x, y]) => ({ x, y, dx: x, dy: y })); }
+function seed(){
+  const r = mulberry32(7); pts = [];
+  [[.24, .30], [.72, .26], [.50, .74]].forEach(([cx, cy]) => {
+    for (let i = 0; i < 22; i++) pts.push({ x: clamp(cx + gauss(r) * .075), y: clamp(cy + gauss(r) * .075), c: 0 });
+  });
+  setCents([[.42, .50], [.52, .42], [.60, .52]]);
+  iter = 0; converged = false; assign(); stats(); kick();
+}
+function stats(){
+  $('#sIter').textContent = iter;
+  $('#sPts').textContent = pts.length;
+  $('#sIn').textContent = inertia().toFixed(2);
+  $('#sState').textContent = converged ? 'Settled' : timer ? 'Running' : 'Ready';
+}
+function step(){
+  if (converged) return;
+  update();
+  if (!assign()) converged = true;
+  iter++; stats(); kick();
+}
+function stop(){ clearInterval(timer); timer = null; $('#bRun').textContent = 'Run'; stats(); }
+function shuffle(){
+  stop();
+  setCents(Array.from({ length: K }, () => [.15 + Math.random() * .7, .15 + Math.random() * .7]));
+  iter = 0; converged = false; assign(); stats(); kick();
+}
+function run(){
+  if (timer) { stop(); return; }
+  if (converged) shuffle();
+  if (reduce) { let n = 0; while (!converged && n++ < 80) step(); cents.forEach(c => { c.dx = c.x; c.dy = c.y; }); draw(); return; }
+  $('#bRun').textContent = 'Pause';
+  timer = setInterval(() => { step(); if (converged) stop(); }, 700);
+  stats();
+}
+function addPoint(x, y){
+  if (pts.length >= 300) return;
+  pts.push({ x: clamp(x), y: clamp(y), c: 0 });
+  assign(); converged = false; stats(); kick();
+}
+
+function resize(){
+  const r = cv.getBoundingClientRect(); if (!r.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+function kick(){ if (!raf) raf = requestAnimationFrame(frame); }
+function frame(){
+  let moving = false;
+  cents.forEach(c => {
+    const ex = c.x - c.dx, ey = c.y - c.dy;
+    if (Math.abs(ex) + Math.abs(ey) > .0006) { c.dx += ex * .2; c.dy += ey * .2; moving = true; } else { c.dx = c.x; c.dy = c.y; }
+  });
+  draw();
+  raf = moving ? requestAnimationFrame(frame) : 0;
+}
+function draw(){
+  if (!W) return;
+  const cs = getComputedStyle(root), col = n => cs.getPropertyValue(n).trim();
+  const C = [col('--accent'), col('--warm'), col('--teal')];
+  ctx.clearRect(0, 0, W, H);
+  ctx.lineWidth = 1; ctx.strokeStyle = col('--line'); ctx.globalAlpha = .6;
+  for (let i = 1; i < 10; i++) {
+    const x = Math.round(i / 10 * W) + .5, y = Math.round(i / 10 * H) + .5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  ctx.globalAlpha = .18;
+  for (const p of pts) { const c = cents[p.c]; ctx.strokeStyle = C[p.c]; ctx.beginPath(); ctx.moveTo(p.x * W, p.y * H); ctx.lineTo(c.dx * W, c.dy * H); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  for (const p of pts) { ctx.fillStyle = C[p.c]; ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 4.5, 0, 6.2832); ctx.fill(); }
+  cents.forEach((c, i) => {
+    const x = c.dx * W, y = c.dy * H;
+    ctx.fillStyle = col('--surface'); ctx.strokeStyle = C[i]; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, 6.2832); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C[i]; ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.2832); ctx.fill();
+  });
+  ctx.fillStyle = col('--muted'); ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillText('x1 →', W - 42, H - 8); ctx.fillText('x2 ↓', 8, 16);
+}
+
+cv.addEventListener('pointerdown', e => {
+  touched = true;
+  const r = cv.getBoundingClientRect();
+  addPoint((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+});
+$('#bRun').addEventListener('click', () => { touched = true; run(); });
+$('#bStep').addEventListener('click', () => { touched = true; stop(); step(); });
+$('#bAdd').addEventListener('click', () => { touched = true; addPoint(.1 + Math.random() * .8, .1 + Math.random() * .8); });
+$('#bShuf').addEventListener('click', () => { touched = true; shuffle(); });
+$('#bReset').addEventListener('click', () => { touched = true; stop(); seed(); });
+new ResizeObserver(resize).observe(cv);
+
+/* ---------- start ---------- */
+renderSkills(); renderProjects(); renderPhases(); renderWeek();
+seed(); resize(); syncTheme();
+if (!reduce) setTimeout(() => { if (!touched && !timer && !converged) run(); }, 1400);
+</script>
+
+</body>
+</html>
